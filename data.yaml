@@ -1,5 +1,0 @@
-train: D:/Document/PycharmProjects/YOLO-based-Emotion-Recognition/RAF_flat/images/train
-val: D:/Document/PycharmProjects/YOLO-based-Emotion-Recognition/RAF_flat/images/valid
-nc: 7
-names: ['Angry','Disgust','Fear','Happy','Sad','Surprise','Neutral']
-
