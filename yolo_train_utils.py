@@ -93,10 +93,10 @@ def run_training(
         exist_ok=True,  # 如果保存目录已存在，不报错，直接覆盖
         resume=resume_pt.exists(),  # 断点续训，如果有断点权重last.pt就接着训
         amp=True,  # 是否开启混合精度（自动混合精度训练，节省显存，建议开启）
-        patience=15,  # Early stopping耐心值。多少轮指标没提升就停止训练
+        patience=10,  # Early stopping耐心值。多少轮指标没提升就停止训练
         verbose=True,  # 详细日志输出
         save=True,  # 是否保存模型权重
-        save_period=15,  # 每隔多少轮保存一次权重
+        save_period=1,  # 每隔多少轮保存一次权重
         plots=True,  # 是否生成训练过程的可视化图表（loss、准确率、混淆矩阵等）
     )
 
