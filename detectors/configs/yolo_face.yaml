@@ -1,0 +1,9 @@
+path: ../datasets/wider-face-for-yolo-training
+train: images/train
+val:   images/val
+test:  images/test
+nc: 1
+names: ['face']
+imgsz: 640
+epochs: 50
+batch: 32

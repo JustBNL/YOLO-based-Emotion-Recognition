@@ -1,0 +1,7 @@
+backbone: mobilenet_v3_small
+img_size: 112
+num_classes: 7
+optimizer: adamw
+lr: 3e-4
+mixup: 0.2
+label_smoothing: 0.1
