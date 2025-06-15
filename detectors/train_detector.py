@@ -1,36 +1,27 @@
 #!/usr/bin/env python
 """
-train_detector.py
-=================
-🚀 **YOLO‑v11 人脸检测微调脚本（无命令行）**
+train_detector.py – v3
+======================
+YOLO‑v11 人脸检测脚本（无命令行）
+---------------------------------
+✨ **新增功能**
+1. 🔄 *自动续训*：当 `CONFIG["resume"] = True` 且 `run_name` 为空，脚本会在 `runs/train/` 中挑选**时间戳最新**且存在 `weights/last.pt` 的实验继续训练。
+2. 🗂 **集中日志**：所有日志写入 `runs/log/<run_name>.log`，不再混到 train 目录。
+3. 🛑 **早停**：暴露 Ultralytics 的 `patience` 参数，`patience` 轮内验证集 mAP/Loss 无提升即自动停止训练（默认 20）。
 
-直接运行即可：
 ```bash
-python detectors/train_detector.py         # 从项目根运行
-# 或
-python train_detector.py                    # 在 detectors 目录运行也 OK
+python detectors/train_detector.py  # 直接运行
 ```
-> 绝对路径自动解析：无论当前工作目录在哪，脚本都会找到 `configs/yolo_face.yaml`。
-
----
-⚠️ **Ultralytics 版本提示**
-* `fp16` 参数已更名 **`amp`** (Automatic Mixed Precision)
-* 若想启用 Weights & Biases：
-  1. 终端执行 `yolo settings wandb=True`（只需一次）；
-  2. 把 `CONFIG["use_wandb"] = True`。
-
----
-功能概要
-* 🕒 自动命名输出目录
-* 🔄 断点续训
-* 📊 (可选)W&B 日志
 """
 from __future__ import annotations
 
+import logging
 import os
 import sys
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 try:
     from ultralytics import YOLO
@@ -39,95 +30,148 @@ except ImportError as exc:
     raise exc
 
 # ---------------------------------------------------------------------------
-# 路径解析：确保 DATA YAML 能在任何工作目录下被找到
+# 路径解析
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent          # detectors/
 PROJECT_ROOT = SCRIPT_DIR.parent                      # 项目根目录
-DATA_YAML = SCRIPT_DIR / "configs" / "yolo_face.yaml"  # 绝对路径
-
+DATA_YAML = SCRIPT_DIR / "configs" / "yolo_face.yaml"
 if not DATA_YAML.exists():
     sys.exit(f"❌ 找不到数据配置文件 {DATA_YAML}，请检查路径！")
 
-# ====================== 👇 用户配置区域 👇 ======================
+# ---------------------------------------------------------------------------
+# 用户配置
+# ---------------------------------------------------------------------------
 CONFIG: dict = {
-    # 数据与模型
-    "data": str(DATA_YAML),         # 已解析为绝对路径
-    "model": str(PROJECT_ROOT / "yolo11n.pt"),  # 预训练权重或 ckpt
-
-    # 训练超参
-    "epochs": 10,
+    "data": str(DATA_YAML),
+    "model": str(PROJECT_ROOT / "yolo11n.pt"),        # 初始权重；resume 时自动覆盖
+    "epochs": 100,
     "imgsz": 640,
-    "batch": 16,
-    "device": "0",                # GPU 索引；CPU 请设为 ""
+    "batch": -1,
+    "device": "0",
     "cache": "disk",
     "freeze": 0,
-    "amp": False,                  # 混合精度训练
+    "amp": True,
     "workers": 4,
+    "patience": 20,            # 早停：验证 mAP/Loss patience 轮无提升即停止
 
-    # 日志
+    # 日志与项目
     "use_wandb": False,
-
-    # 项目管理
     "project_root": str(PROJECT_ROOT / "runs" / "train"),
-    "run_name": "",               # 留空自动命名
-    "resume": False,               # True ➡ 断点续训
+    "log_root": str(PROJECT_ROOT / "runs" / "log"),
+    "run_name": "",           # 空→自动；或填旧 run 目录名
+    "resume": True,           # True 自动续训
 }
-# ==============================================================
 
+# ---------------------------------------------------------------------------
+# 工具函数
+# ---------------------------------------------------------------------------
 
-def _build_run_name(base: str | None, model_path: str | Path) -> str:
-    """生成形如 `face-yolo11n_20250615-142530` 的目录名。"""
+def build_run_name(base: Optional[str], model_path: Path) -> str:
     if base:
         return base
-    stem = Path(model_path).stem  # e.g. yolo11n
-    return f"face-{stem}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+    return f"face-{model_path.stem}_{stamp}"
 
+
+def fmt_seconds(sec: float) -> str:
+    return str(timedelta(seconds=int(sec)))
+
+
+def find_latest_run(train_root: Path) -> Optional[Path]:
+    """返回 runs/train 下最新修改且包含 weights/last.pt 的目录。"""
+    candidates = [p for p in train_root.iterdir() if p.is_dir() and (p / 'weights/last.pt').exists()]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda p: p.stat().st_mtime)
+
+
+class EpochTimer:
+    def __init__(self, logger: logging.Logger):
+        self.logger = logger
+        self.t0 = 0.0
+
+    def on_train_epoch_start(self, _):
+        self.t0 = time.perf_counter()
+
+    def on_train_epoch_end(self, trainer):
+        self.logger.info(f"⏱️ Epoch {trainer.epoch + 1}/{trainer.args.epochs} 用时: {fmt_seconds(time.perf_counter() - self.t0)}")
+
+
+# ---------------------------------------------------------------------------
+# 主流程
+# ---------------------------------------------------------------------------
 
 def main() -> None:
-    cfg = CONFIG  # shorthand
+    cfg = CONFIG.copy()
 
-    project_dir = Path(cfg["project_root"]).expanduser()
-    run_name = _build_run_name(cfg["run_name"], cfg["model"])
-    run_dir = project_dir / run_name
+    train_root = Path(cfg["project_root"]).expanduser()
+    log_root = Path(cfg["log_root"]).expanduser()
+    log_root.mkdir(parents=True, exist_ok=True)
 
-    # 🔄 断点续训逻辑
-    resume_flag: str | bool = False
-    if cfg["resume"]:
-        ckpt = run_dir / "weights/last.pt"
-        if ckpt.exists():
-            resume_flag = ckpt.as_posix()
-            print(f"🔄 正在从 {ckpt} 恢复训练…")
+    # ---------------- 选择 run 目录 ----------------
+    if cfg["resume"] and not cfg["run_name"]:
+        latest = find_latest_run(train_root)
+        if latest:
+            cfg["run_name"] = latest.name
         else:
-            print("⚠️  启用了恢复，但未找到 checkpoint，改为全新训练。")
+            print("⚠️ 未找到可续训的实验，将启动新训练。")
+            cfg["resume"] = False
 
-    # 初始化 YOLO 模型
+    run_name = build_run_name(cfg["run_name"], Path(cfg["model"]))
+    run_dir = train_root / run_name
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    # ---------------- 日志 ----------------
+    log_file = log_root / f"{run_name}.log"
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(message)s",
+        datefmt="%H:%M:%S",
+        handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(log_file, 'w', encoding='utf-8')],
+    )
+    logger = logging.getLogger("trainer")
+
+    # ---------------- Resume 逻辑 ----------------
+    resume_flag = False
+    if cfg["resume"]:
+        ckpt = run_dir / 'weights' / 'last.pt'
+        if ckpt.exists():
+            cfg["model"] = str(ckpt)
+            resume_flag = True
+            logger.info(f"🔄 继续训练 {ckpt}")
+        else:
+            logger.warning("Resume=True 但未找到 last.pt，改为新训练。")
+
+    # ---------------- 初始化模型 ----------------
     model = YOLO(cfg["model"])
 
-    print(f"🚀 开始训练: {run_name}")
+    # 回调注册
+    etimer = EpochTimer(logger)
+    model.add_callback('on_train_epoch_start', etimer.on_train_epoch_start)
+    model.add_callback('on_train_epoch_end', etimer.on_train_epoch_end)
 
-    # 提取 YOLO.train 支持的关键字
-    train_keys = {
-        "data", "epochs", "imgsz", "batch", "device", "cache", "freeze", "amp", "workers"
-    }
-    train_kwargs = {k: v for k, v in cfg.items() if k in train_keys}
-
-    # 🔗 W&B 回调（可选）
     if cfg.get("use_wandb"):
         from ultralytics.utils.callbacks.wb import WandbCallback
-        model.add_callback("on_fit_start", WandbCallback())
-        print("📊 W&B 回调已注册 (确保执行了 `yolo settings wandb=True`)\n")
+        model.add_callback('on_fit_start', WandbCallback())
+        logger.info("📊 W&B 已启用 (需 `yolo settings wandb=True`)")
 
-    # 训练
+    # ---------------- 开始训练 ----------------
+    t0 = time.perf_counter()
+    logger.info(f"🚀 开始训练: {run_name}")
+
+    train_params = {k: v for k, v in cfg.items() if k in {
+        'data', 'epochs', 'imgsz', 'batch', 'device', 'cache', 'freeze', 'amp', 'workers', 'patience'} }
+
     model.train(
-        **train_kwargs,
-        project=project_dir.as_posix(),
+        **train_params,
+        project=str(train_root),
         name=run_name,
         resume=resume_flag,
         pretrained=True,
     )
 
-    print(f"✅ 训练完成，文件已保存至 {run_dir}")
+    logger.info(f"✅ 训练完成，总耗时: {fmt_seconds(time.perf_counter() - t0)} | 结果目录: {run_dir}")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
