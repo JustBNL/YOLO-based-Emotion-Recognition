@@ -1,107 +1,88 @@
+#!/usr/bin/env python
+"""convert_fer2013.py – v3 (fast)
+=================================
+将官方 `fer2013.csv` 拆分为 Ultralytics **分类任务**目录，保持
+```
+datasets/processed/fer2013/images/{train|val|test}/{angry|...|neutral}/*.jpg
+```
+并消除 `glob()` O(N²) 瓶颈：**文件名直接用行号 idx**，线性 O(N)。
+
+运行：
+```bash
+python datasets/scripts/convert_fer2013.py   # 读取下方 CONFIG
+```
+"""
+from __future__ import annotations
+
+import csv
 import os
-import pandas as pd
-import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
 import cv2
+import numpy as np
 from tqdm import tqdm
 
-# --- 配置参数 ---
-
-# 1. fer2013.csv 文件的路径
-csv_path = '../raw/fer2013.csv'
-
-# 2. 输出数据集的根目录名称
-output_dir = '../processed/fer2013_yolo'
-
-# 3. 情绪标签到文件夹名称的映射
-# YOLO 推荐使用数字和下划线开头的文件夹名，以保持类别顺序
-emotion_labels = {
-    0: '0',
-    1: '1',
-    2: '2',
-    3: '3',
-    4: '4',
-    5: '5',
-    6: '6'
+# ---------------------------------------------------------------------------
+# 用户配置
+# ---------------------------------------------------------------------------
+CONFIG: dict = {
+    "csv_path": "../raw/fer2013.csv",            # 原始 CSV 路径
+    "out_root": "../processed/fer2013",          # 输出根目录
+    "rgb": False,                                       # True→灰度转 3 通道
+    "workers": os.cpu_count() or 8,                     # 写文件线程
 }
 
-# 4. fer2013.csv中的'Usage'列到目标文件夹的映射
-usage_mapping = {
-    'Training': 'train',
-    'PublicTest': 'val',  # PublicTest 通常用作验证集
-    'PrivateTest': 'test'  # PrivateTest 通常用作测试集
+# 标签映射
+LABELS = {
+    "0": "angry",
+    "1": "disgust",
+    "2": "fear",
+    "3": "happy",
+    "4": "sad",
+    "5": "surprise",
+    "6": "neutral",
 }
+SPLIT_MAP = {"Training": "train", "PublicTest": "val", "PrivateTest": "test"}
 
 
-# --- 脚本主逻辑 ---
+# ---------------------------------------------------------------------------
+# 核心函数
+# ---------------------------------------------------------------------------
 
-def create_yolo_dataset(csv_path, output_dir):
-    """
-    读取 fer2013.csv 文件并将其转换为 YOLO 分类数据集格式。
-    """
-    # 检查CSV文件是否存在
-    if not os.path.exists(csv_path):
-        print(f"错误: CSV 文件未找到 at '{csv_path}'")
-        return
+def save_image(row: list[str], idx: int, root: Path, rgb: bool) -> None:
+    """把一行 CSV 转成 jpg 并保存."""
+    emotion, pixels, usage = row
+    dst_dir = root / "images" / SPLIT_MAP[usage] / LABELS[emotion]
+    dst_dir.mkdir(parents=True, exist_ok=True)
 
-    # 读取CSV文件
-    print("正在读取 CSV 文件...")
-    df = pd.read_csv(csv_path)
+    img = np.fromstring(pixels, sep=" ", dtype=np.uint8).reshape(48, 48)
+    if rgb:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
-    print("开始创建目录结构...")
-    # 创建主输出目录和子目录 (train, val, test)
-    for usage in usage_mapping.values():
-        usage_path = os.path.join(output_dir, usage)
-        # 在每个子目录中为每个情绪创建文件夹
-        for label_name in emotion_labels.values():
-            class_path = os.path.join(usage_path, label_name)
-            os.makedirs(class_path, exist_ok=True)
-
-    print("开始处理图像并保存...")
-    # 使用 tqdm 创建一个进度条
-    for index, row in tqdm(df.iterrows(), total=df.shape[0], desc="处理图像"):
-        try:
-            # 获取情绪、像素和用途
-            emotion = int(row['emotion'])
-            pixels_str = row['pixels']
-            usage = row['Usage']
-
-            # 将像素字符串转换为 48x48 的 numpy 数组 (图像)
-            pixels = np.array(pixels_str.split(), 'uint8')
-            image = pixels.reshape(48, 48)
-
-            # 获取目标文件夹路径
-            split_dir = usage_mapping.get(usage)
-            if split_dir is None:
-                print(f"警告: 在行 {index} 发现未知的 Usage '{usage}'，已跳过。")
-                continue
-
-            class_name = emotion_labels.get(emotion)
-            if class_name is None:
-                print(f"警告: 在行 {index} 发现未知的情绪标签 '{emotion}'，已跳过。")
-                continue
-
-            # 构建最终的文件保存路径和文件名
-            # 文件名使用 "usage_emotion_index.png" 格式以确保唯一性
-            image_filename = f"{split_dir}_{emotion}_{index}.png"
-            image_path = os.path.join(output_dir, split_dir, class_name, image_filename)
-
-            # 保存图像
-            cv2.imwrite(image_path, image)
-
-        except Exception as e:
-            print(f"处理行 {index} 时发生错误: {e}")
-
-    print("\n数据集转换完成！")
-    print(f"数据集已保存在: '{os.path.abspath(output_dir)}'")
-    print("\n目录结构预览:")
-    for split in os.listdir(output_dir):
-        split_path = os.path.join(output_dir, split)
-        if os.path.isdir(split_path):
-            print(f"  - {split}/")
-            for class_dir in os.listdir(split_path)[:2]:  # 只显示前两个类别作为示例
-                print(f"    - {class_dir}/")
-            print("    - ...")
+    cv2.imwrite(str(dst_dir / f"{idx:05d}.jpg"), img)
 
 
-if __name__ == '__main__':
-    create_yolo_dataset(csv_path, output_dir)
+def main() -> None:
+    cfg = CONFIG
+    csv_path = Path(cfg["csv_path"]).expanduser()
+    out_root = Path(cfg["out_root"]).expanduser()
+    out_root.mkdir(parents=True, exist_ok=True)
+
+    # 读取所有行
+    with csv_path.open("r", newline="") as f:
+        reader = csv.reader(f)
+        next(reader)  # 跳表头
+        rows = list(reader)
+
+    # 并发写图，行号 idx 直接作为文件名
+    with ThreadPoolExecutor(max_workers=cfg["workers"]) as ex:
+        list(tqdm(ex.map(lambda p: save_image(*p, out_root, cfg["rgb"]),
+                        ((row, i) for i, row in enumerate(rows))),
+                 total=len(rows), desc="Converting"))
+
+    print(f"✅ 转换完成！图片已保存至 {out_root / 'images'}")
+
+
+if __name__ == "__main__":
+    main()
