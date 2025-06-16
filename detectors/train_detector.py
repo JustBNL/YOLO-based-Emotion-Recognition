@@ -43,8 +43,8 @@ CONFIG: dict = {
 
     # 日志与项目
     "use_wandb": False,
-    "project_root": str(PROJECT_ROOT / "runs" / "train"),
-    "log_root": str(PROJECT_ROOT / "runs" / "log"),
+    "project_root": str(PROJECT_ROOT / "runs" / "det" / "train"),
+    "log_root": str(PROJECT_ROOT / "runs" / "det" / "log"),
     "run_name": "",           # 空→自动；或填旧 run 目录名
     "resume": False,           # True 自动续训
 }
@@ -57,7 +57,7 @@ def build_run_name(base: Optional[str], model_path: Path) -> str:
     if base:
         return base
     stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-    return f"face-{model_path.stem}_{stamp}"
+    return f"{model_path.stem}_{stamp}"
 
 
 def fmt_seconds(sec: float) -> str:
