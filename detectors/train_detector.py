@@ -1,18 +1,5 @@
 #!/usr/bin/env python
-"""
-train_detector.py – v3
-======================
-YOLO‑v11 人脸检测脚本（无命令行）
----------------------------------
-✨ **新增功能**
-1. 🔄 *自动续训*：当 `CONFIG["resume"] = True` 且 `run_name` 为空，脚本会在 `runs/train/` 中挑选**时间戳最新**且存在 `weights/last.pt` 的实验继续训练。
-2. 🗂 **集中日志**：所有日志写入 `runs/log/<run_name>.log`，不再混到 train 目录。
-3. 🛑 **早停**：暴露 Ultralytics 的 `patience` 参数，`patience` 轮内验证集 mAP/Loss 无提升即自动停止训练（默认 20）。
 
-```bash
-python detectors/train_detector.py  # 直接运行
-```
-"""
 from __future__ import annotations
 
 import logging

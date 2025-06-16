@@ -1,25 +1,5 @@
 #!/usr/bin/env python
-"""
-train_classifier.py – v1
-========================
-YOLO‑v11 表情分类器训练脚本（无命令行）
---------------------------------------
-* 结构与 detectors/train_detector.py 保持一致：CONFIG + 自动日志 + 自动续训 + 早停。
-* 适用 **AffectNet / RAF‑DB / FER‑2013** 已转换成 Ultralytics `classify` 数据格式：
-  ```yaml
-  path: ../../datasets/raf_db         # 含 images/train images/val
-  train: images/train
-  val:   images/val
-  nc: 7
-  names: ["neutral","happy", ...]
-  ```
-* 初始模型可用官方 `yolo11n-cls.pt`（或 `mobilenetv3-small.pt`）。
 
-运行方式：
-```bash
-python classifiers/train_classifier.py
-```
-"""
 from __future__ import annotations
 
 import logging
@@ -41,16 +21,13 @@ except ImportError as exc:
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent          # classifiers/
 PROJECT_ROOT = SCRIPT_DIR.parent                      # 项目根目录
-DATA_YAML = SCRIPT_DIR / "configs" / "yolo_face_cls.yaml"
-if not DATA_YAML.exists():
-    sys.exit(f"❌ 找不到数据配置文件 {DATA_YAML}，请检查路径！")
 
 # ---------------------------------------------------------------------------
 # 用户配置
 # ---------------------------------------------------------------------------
 CONFIG: dict = {
     # 数据与模型
-    "data": str(DATA_YAML),
+    "data": "D:\\Document\\PycharmProjects\\YOLO-based-Emotion-Recognition\\datasets\\processed\\fer2013\\images", #YOLObug无法使用yaml文件
     "model": str(SCRIPT_DIR / "yolo11n-cls.pt"),
     "epochs": 10,
     "imgsz": 112,
