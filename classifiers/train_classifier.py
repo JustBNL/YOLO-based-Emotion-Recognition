@@ -29,11 +29,11 @@ CONFIG: dict = {
     # 数据与模型
     "data": "D:\\Document\\PycharmProjects\\YOLO-based-Emotion-Recognition\\datasets\\processed\\fer2013\\images", #YOLObug无法使用yaml文件
     "model": str(SCRIPT_DIR / "yolo11n-cls.pt"),
-    "epochs": 10,
+    "epochs": 300,
     "imgsz": 112,
     "mixup": 0.2,           # 0 关闭
     "label_smoothing": 0.1,
-    "batch": -1,            # 自动 batch
+    "batch": 1024,            # 自动 batch
     "device": "0",
     "amp": True,
     "workers": 4,
@@ -44,7 +44,7 @@ CONFIG: dict = {
     "project_root": str(PROJECT_ROOT / "runs" / "cls" / "train"),
     "log_root": str(PROJECT_ROOT / "runs" / "cls" / "log"),
     "run_name": "",           # 空→自动；或旧 run 目录名继续训练
-    "resume": False,           # True 自动续训
+    "resume": False,
 }
 
 # ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ class EpochTimer:
 def main() -> None:
     cfg = CONFIG.copy()
 
-    train_root = Path(cfg["project_root"]).expanduser()
+    train_root = Path(cfg["project_root"]).expanduser(); train_root.mkdir(parents=True, exist_ok=True)
     log_root = Path(cfg["log_root"]).expanduser(); log_root.mkdir(parents=True, exist_ok=True)
 
     # 自动挑选最新实验续训
@@ -99,7 +99,7 @@ def main() -> None:
             cfg["resume"] = False
 
     run_name = build_run_name(cfg["run_name"], Path(cfg["model"]))
-    run_dir = train_root / run_name; run_dir.mkdir(parents=True, exist_ok=True)
+    run_dir = train_root / run_name
 
     # 日志设置
     log_file = log_root / f"{run_name}.log"
@@ -108,6 +108,15 @@ def main() -> None:
                         datefmt="%H:%M:%S",
                         handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(log_file, 'w', 'utf-8')])
     logger = logging.getLogger("cls_trainer")
+
+    # 捕获 Ultralytics (logging 或 loguru) 输出到日志文件
+    from ultralytics.utils import LOGGER
+    if hasattr(LOGGER, "add"):
+        LOGGER.add(log_file, encoding="utf-8")
+    else:
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", datefmt="%H:%M:%S"))
+        LOGGER.addHandler(file_handler)
 
     # Resume 逻辑
     resume_flag = False
@@ -140,7 +149,8 @@ def main() -> None:
 
     model.train(**train_params,
                 project=str(train_root), name=run_name,
-                resume=resume_flag, pretrained=True)
+                resume=resume_flag, pretrained=True,
+                exist_ok=True)
 
     logger.info(f"✅ 训练完成，总耗时 {fmt_seconds(time.perf_counter() - t0)} | 结果目录 {run_dir}")
 

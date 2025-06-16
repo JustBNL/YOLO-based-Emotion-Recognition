@@ -65,11 +65,8 @@ def fmt_seconds(sec: float) -> str:
 
 
 def find_latest_run(train_root: Path) -> Optional[Path]:
-    """返回 runs/train 下最新修改且包含 weights/last.pt 的目录。"""
-    candidates = [p for p in train_root.iterdir() if p.is_dir() and (p / 'weights/last.pt').exists()]
-    if not candidates:
-        return None
-    return max(candidates, key=lambda p: p.stat().st_mtime)
+    runs = [p for p in train_root.iterdir() if p.is_dir() and (p / 'weights/last.pt').exists()]
+    return max(runs, key=lambda p: p.stat().st_mtime) if runs else None
 
 
 class EpochTimer:
@@ -106,7 +103,6 @@ def main() -> None:
 
     run_name = build_run_name(cfg["run_name"], Path(cfg["model"]))
     run_dir = train_root / run_name
-    run_dir.mkdir(parents=True, exist_ok=True)
 
     # ---------------- 日志 ----------------
     log_file = log_root / f"{run_name}.log"
@@ -117,6 +113,17 @@ def main() -> None:
         handlers=[logging.StreamHandler(sys.stdout), logging.FileHandler(log_file, 'w', encoding='utf-8')],
     )
     logger = logging.getLogger("trainer")
+
+    # 捕获 Ultralytics (logging 或 loguru) 输出到日志文件
+    from ultralytics.utils import LOGGER
+    if hasattr(LOGGER, "add"):
+        # loguru 风格 (旧版)
+        LOGGER.add(log_file, encoding="utf-8")
+    else:
+        # logging.Logger (Ultralytics >= 8.2)
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler.setFormatter(logging.Formatter("%(asctime)s | %(message)s", datefmt="%H:%M:%S"))
+        LOGGER.addHandler(file_handler)
 
     # ---------------- Resume 逻辑 ----------------
     resume_flag = False
@@ -140,12 +147,10 @@ def main() -> None:
     if cfg.get("use_wandb"):
         from ultralytics.utils.callbacks.wb import WandbCallback
         model.add_callback('on_fit_start', WandbCallback())
-        logger.info("📊 W&B 已启用 (需 `yolo settings wandb=True`)")
+        logger.info("📊 已启用 W&B 日志")
 
     # ---------------- 开始训练 ----------------
-    t0 = time.perf_counter()
-    logger.info(f"🚀 开始训练: {run_name}")
-
+    t0 = time.perf_counter(); logger.info(f"🚀 开始训练检测器: {run_name}")
     train_params = {k: v for k, v in cfg.items() if k in {
         'data', 'epochs', 'imgsz', 'batch', 'device', 'cache', 'freeze', 'amp', 'workers', 'patience'} }
 
@@ -155,6 +160,7 @@ def main() -> None:
         name=run_name,
         resume=resume_flag,
         pretrained=True,
+        exist_ok=True,
     )
 
     logger.info(f"✅ 训练完成，总耗时: {fmt_seconds(time.perf_counter() - t0)} | 结果目录: {run_dir}")
