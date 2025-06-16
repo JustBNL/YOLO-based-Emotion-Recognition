@@ -1,5 +1,0 @@
-path: ../../datasets/processed/RAF
-train: images/train
-val:   images/val
-nc: 8
-names: [neutral, happy, surprise, sad, angry, disgust, fear, contempt]

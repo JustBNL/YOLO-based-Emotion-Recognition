@@ -34,7 +34,7 @@ except ImportError as exc:
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent          # detectors/
 PROJECT_ROOT = SCRIPT_DIR.parent                      # 项目根目录
-DATA_YAML = SCRIPT_DIR / "configs" / "yolo_face.yaml"
+DATA_YAML = SCRIPT_DIR / "configs" / "yolo_face_det.yaml"
 if not DATA_YAML.exists():
     sys.exit(f"❌ 找不到数据配置文件 {DATA_YAML}，请检查路径！")
 
@@ -43,7 +43,7 @@ if not DATA_YAML.exists():
 # ---------------------------------------------------------------------------
 CONFIG: dict = {
     "data": str(DATA_YAML),
-    "model": str(SCRIPT_DIR / "configs" / "yolo11n.pt"),        # 初始权重；resume 时自动覆盖
+    "model": str(SCRIPT_DIR / "yolo11n.pt"),
     "epochs": 1,
     "imgsz": 640,
     "batch": -1,

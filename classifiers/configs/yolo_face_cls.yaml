@@ -1,0 +1,13 @@
+#path: ../../datasets/processed/RAF
+#train: images/train
+#val:   images/val
+#nc: 8
+#names: [neutral, happy, surprise, sad, angry, disgust, fear, contempt]
+
+path: ../../datasets/processed/fer2013
+train: images/train
+val:   images/val
+test:  images/test
+nc: 7
+names: [angry, disgust, fear, happy, sad, surprise, neutral]
+

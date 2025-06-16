@@ -41,7 +41,7 @@ except ImportError as exc:
 # ---------------------------------------------------------------------------
 SCRIPT_DIR = Path(__file__).resolve().parent          # classifiers/
 PROJECT_ROOT = SCRIPT_DIR.parent                      # 项目根目录
-DATA_YAML = SCRIPT_DIR / "configs" / "fer_mobilenet.yaml"
+DATA_YAML = SCRIPT_DIR / "configs" / "yolo_face_cls.yaml"
 if not DATA_YAML.exists():
     sys.exit(f"❌ 找不到数据配置文件 {DATA_YAML}，请检查路径！")
 
@@ -51,8 +51,8 @@ if not DATA_YAML.exists():
 CONFIG: dict = {
     # 数据与模型
     "data": str(DATA_YAML),
-    "model": str(SCRIPT_DIR / "configs" / "yolo11n-cls.pt"),
-    "epochs": 40,
+    "model": str(SCRIPT_DIR / "yolo11n-cls.pt"),
+    "epochs": 10,
     "imgsz": 112,
     "mixup": 0.2,           # 0 关闭
     "label_smoothing": 0.1,
