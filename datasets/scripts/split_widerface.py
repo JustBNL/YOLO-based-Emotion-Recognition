@@ -10,7 +10,7 @@ import random
 import shutil
 from pathlib import Path
 
-root = Path("datasets/wider-face-for-yolo-training").resolve()
+root = Path("../processed/wider-face-for-yolo-training").resolve()
 img_dir = root / "images"
 lbl_dir = root / "labels"
 

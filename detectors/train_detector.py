@@ -43,8 +43,8 @@ if not DATA_YAML.exists():
 # ---------------------------------------------------------------------------
 CONFIG: dict = {
     "data": str(DATA_YAML),
-    "model": str(PROJECT_ROOT / "yolo11n.pt"),        # 初始权重；resume 时自动覆盖
-    "epochs": 100,
+    "model": str(SCRIPT_DIR / "configs" / "yolo11n.pt"),        # 初始权重；resume 时自动覆盖
+    "epochs": 1,
     "imgsz": 640,
     "batch": -1,
     "device": "0",
@@ -59,7 +59,7 @@ CONFIG: dict = {
     "project_root": str(PROJECT_ROOT / "runs" / "train"),
     "log_root": str(PROJECT_ROOT / "runs" / "log"),
     "run_name": "",           # 空→自动；或填旧 run 目录名
-    "resume": True,           # True 自动续训
+    "resume": False,           # True 自动续训
 }
 
 # ---------------------------------------------------------------------------

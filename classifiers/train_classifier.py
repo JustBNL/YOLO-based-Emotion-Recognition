@@ -51,7 +51,7 @@ if not DATA_YAML.exists():
 CONFIG: dict = {
     # 数据与模型
     "data": str(DATA_YAML),
-    "model": str(PROJECT_ROOT / "yolo11n-cls.pt"),   # or mobilenetv3-small
+    "model": str(SCRIPT_DIR / "configs" / "yolo11n-cls.pt"),
     "epochs": 40,
     "imgsz": 112,
     "mixup": 0.2,           # 0 关闭
