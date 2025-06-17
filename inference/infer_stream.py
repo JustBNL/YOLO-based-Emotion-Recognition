@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-realtime_pipeline.py – 两阶段实时 FER（YOLO-v11 修正版）
+infer_stream.py – 两阶段实时 FER（YOLO-v11 修正版）
 ========================================================
 * 支持 USB 摄像头 / 视频文件 / RTSP
 * 可选保存输出、可选关闭窗口
