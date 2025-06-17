@@ -27,7 +27,7 @@ CONFIG = {
     "names": ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"],
     "font": cv2.FONT_HERSHEY_SIMPLEX,
     "report_save": True,
-    "report_dir": "eval_result",
+    "report_dir": "eval_result/cls",
     "analyze_classes": ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"]  # 可选: 仅分析特定类别（按名称）
 }
 
