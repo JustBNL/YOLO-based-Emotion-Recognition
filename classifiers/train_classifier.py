@@ -27,17 +27,18 @@ PROJECT_ROOT = SCRIPT_DIR.parent                      # 项目根目录
 # ---------------------------------------------------------------------------
 CONFIG: dict = {
     # 数据与模型
-    "data": "D:\\Document\\PycharmProjects\\YOLO-based-Emotion-Recognition\\datasets\\processed\\fer2013\\images", #YOLObug无法使用yaml文件
+    "data": "D:\\Document\\PycharmProjects\\YOLO-based-Emotion-Recognition\\datasets\\cls\\processed\\affectnet\\images", #YOLObug无法使用yaml文件
     "model": str(SCRIPT_DIR / "yolo11n-cls.pt"),
     "epochs": 300,
-    "imgsz": 112,
+    "imgsz": 224,
     "mixup": 0.2,           # 0 关闭
     "label_smoothing": 0.1,
-    "batch": 1024,            # 自动 batch
+    "cache": "disk",
+    "batch": -1,
     "device": "0",
     "amp": True,
     "workers": 4,
-    "patience": 5,            # 早停
+    "patience": 50,            # 早停
 
     # 日志与项目
     "use_wandb": False,
@@ -145,7 +146,7 @@ def main() -> None:
     t0 = time.perf_counter(); logger.info(f"🚀 开始训练分类器: {run_name}")
     train_params = {k: v for k, v in cfg.items() if k in {
         'data', 'epochs', 'imgsz', 'batch', 'device', 'amp', 'workers',
-        'patience', 'mixup', 'label_smoothing'}}
+        'patience', 'mixup', 'label_smoothing','cache'}}
 
     model.train(**train_params,
                 project=str(train_root), name=run_name,
