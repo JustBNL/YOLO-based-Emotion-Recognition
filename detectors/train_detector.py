@@ -31,8 +31,8 @@ if not DATA_YAML.exists():
 CONFIG: dict = {
     "data": str(DATA_YAML),
     "model": str(SCRIPT_DIR / "yolo11n.pt"),
-    "epochs": 1,
-    "imgsz": 640,
+    "epochs": 150,
+    "imgsz": 1024,
     "batch": -1,
     "device": "0",
     "cache": "disk",
@@ -47,6 +47,29 @@ CONFIG: dict = {
     "log_root": str(PROJECT_ROOT / "runs" / "det" / "log"),
     "run_name": "",           # 空→自动；或填旧 run 目录名
     "resume": False,           # True 自动续训
+
+    "lr0":           0.01,   # 初始学习率（SGD） :contentReference[oaicite:6]{index=6}
+    "lrf":           0.10,   # 余弦衰减终值
+    "momentum":      0.937,
+    "weight_decay":  0.0005,
+    "warmup_epochs": 3,
+
+    # 色彩增强
+    "hsv_h": 0.015,
+    "hsv_s": 0.70,
+    "hsv_v": 0.40,
+
+    # 几何增强
+    "fliplr": 0.50,
+    "flipud": 0.0,
+    "degrees": 0.0,
+    "shear": 0.0,
+    "perspective": 0.0,
+
+    # Mix/Mosaic 增强
+    "mosaic":     0.80,
+    "mixup":      0.0,
+    "copy_paste": 0.0,
 }
 
 # ---------------------------------------------------------------------------
@@ -152,7 +175,15 @@ def main() -> None:
     # ---------------- 开始训练 ----------------
     t0 = time.perf_counter(); logger.info(f"🚀 开始训练检测器: {run_name}")
     train_params = {k: v for k, v in cfg.items() if k in {
-        'data', 'epochs', 'imgsz', 'batch', 'device', 'cache', 'freeze', 'amp', 'workers', 'patience'} }
+        # ——核心训练参数——
+        "data", "model", "epochs", "imgsz", "batch", "device",
+        "cache", "freeze", "amp", "workers", "patience",
+
+        # ——超参数——
+        "lr0", "lrf", "momentum", "weight_decay", "warmup_epochs",
+        "hsv_h", "hsv_s", "hsv_v",
+        "fliplr", "flipud", "degrees", "shear", "perspective",
+        "mosaic", "mixup", "copy_paste",} }
 
     model.train(
         **train_params,
