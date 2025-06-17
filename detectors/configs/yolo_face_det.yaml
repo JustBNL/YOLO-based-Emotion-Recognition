@@ -1,4 +1,4 @@
-path: ../datasets/processed/wider-face-for-yolo-training
+path: ../datasets/det/processed/wider-face-for-yolo-training
 train: images/train
 val:   images/val
 test:  images/test
