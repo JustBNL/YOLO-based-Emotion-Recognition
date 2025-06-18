@@ -1,16 +1,6 @@
 #!/usr/bin/env python
-"""convert_fer2013.py – v3 (fast)
-=================================
-将官方 `fer2013.csv` 拆分为 Ultralytics **分类任务**目录，保持
-```
-datasets/processed/fer2013/images/{train|val|test}/{angry|...|neutral}/*.jpg
-```
-并消除 `glob()` O(N²) 瓶颈：**文件名直接用行号 idx**，线性 O(N)。
-
-运行：
-```bash
-python datasets/scripts/convert_fer2013.py   # 读取下方 CONFIG
-```
+"""
+将官方 `fer2013.csv` 拆分为分类任务目录
 """
 from __future__ import annotations
 
