@@ -29,16 +29,16 @@ CONFIG: dict = {
     # 数据与模型
     "data": "D:\\Document\\PycharmProjects\\YOLO-based-Emotion-Recognition\\datasets\\cls\\processed\\affectnet\\images", #YOLObug无法使用yaml文件
     "model": str(SCRIPT_DIR / "yolo11n-cls.pt"),
-    "epochs": 300,
+    "epochs": 100,
     "imgsz": 224,
-    "mixup": 0.2,           # 0 关闭
+    # "mixup": 0.2,           # 0 关闭
     "label_smoothing": 0.1,
     "cache": "disk",
-    "batch": -1,
+    "batch": 256,
     "device": "0",
     "amp": True,
-    "workers": 4,
-    "patience": 50,            # 早停
+    # "workers": 4,
+    "patience": 10,            # 早停
 
     # 日志与项目
     "use_wandb": False,
