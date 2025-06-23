@@ -75,6 +75,7 @@ from .conv import (
     LightConv,
     RepConv,
     SpatialAttention,
+    SE,
 )
 from .head import (
     OBB,
@@ -103,6 +104,7 @@ from .transformer import (
 )
 
 __all__ = (
+    "SE",
     "Conv",
     "Conv2",
     "LightConv",
