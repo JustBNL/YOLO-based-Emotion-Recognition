@@ -28,17 +28,16 @@ PROJECT_ROOT = SCRIPT_DIR.parent                      # 项目根目录
 CONFIG: dict = {
     # 数据与模型
     "data": "D:\\Document\\PycharmProjects\\YOLO-based-Emotion-Recognition\\datasets\\cls\\processed\\affectnet\\images", #YOLObug无法使用yaml文件
-    "model": str(SCRIPT_DIR / "yolo11n-cls.pt"),
-    "epochs": 100,
+    "model": str(SCRIPT_DIR / "yolo11s-cls.pt"),
+    "epochs": 150,
     "imgsz": 224,
-    # "mixup": 0.2,           # 0 关闭
-    "label_smoothing": 0.1,
-    "cache": "disk",
-    "batch": 256,
+    "cache": True,
+    "batch": 32,
     "device": "0",
     "amp": True,
     # "workers": 4,
-    "patience": 10,            # 早停
+    "patience": 20,            # 早停
+    # "optimizer": "AdamW",
 
     # 日志与项目
     "use_wandb": False,
