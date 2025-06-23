@@ -29,7 +29,10 @@ CONFIG: dict = {
         "imgsz": 224,
         "batch": 32,
         "patience": 20,
-        "device": "0"
+        "device": "0",
+        "workers": 2,
+        "cache": "disk",
+        "amp": True,
     },
 
     # K-Means参数

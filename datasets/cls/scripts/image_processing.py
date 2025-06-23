@@ -16,7 +16,7 @@ import shutil
 RESIZE_TO = (224, 224)  # 图像目标尺寸
 CONVERT_GRAYSCALE = True  # 是否将图像转换为灰度图
 SRC_DIR = Path("../raw/affectnet")  # 原始数据目录
-DST_DIR = Path("../processed/affectnet-1/images")  # 处理后的图像目录
+DST_DIR = Path("../processed/affectnet-1")  # 处理后的图像目录
 LOG_FILE = "error_log.txt"  # 错误日志文件路径
 IGNORE_FOLDERS = ["contempt"]  # 忽略的文件夹列表 (可以根据需要修改)
 INCLUDE_FOLDERS = []  # 仅包含的文件夹列表 (空则表示处理所有文件夹)
