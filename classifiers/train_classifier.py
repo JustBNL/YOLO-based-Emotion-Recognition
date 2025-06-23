@@ -31,7 +31,7 @@ CONFIG: dict = {
     "model": str(SCRIPT_DIR / "yolo11s-cls.pt"),
     "epochs": 150,
     "imgsz": 224,
-    "cache": True,
+    "cache": "disk",
     "batch": 32,
     "device": "0",
     "amp": True,
@@ -130,7 +130,7 @@ def main() -> None:
             logger.warning("Resume=True 但未找到 last.pt，改为新训练。")
 
     # 初始化模型（Ultralytics 分类任务会自动识别）
-    model = YOLO(cfg["model"])
+    model = YOLO(r"D:\Document\PycharmProjects\YOLO-based-Emotion-Recognition\ultralytics\cfg\models\11\yolo11-cls.yaml").load(cfg["model"])
 
     # 回调
     etimer = EpochTimer(logger)
