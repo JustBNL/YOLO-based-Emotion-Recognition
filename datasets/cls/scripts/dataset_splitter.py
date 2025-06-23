@@ -4,14 +4,13 @@
 数据集拆分功能
 
 affectnet-1
-└── images
-    ├── anger
-    ├── disgust
-    ├── fear
-    ├── happy
-    ├── neutral
-    ├── sad
-    └── surprise
+├── anger
+├── disgust
+├── fear
+├── happy
+├── neutral
+├── sad
+└── surprise
 
 拆分为：
 
@@ -52,7 +51,7 @@ import shutil
 # ───────────────────────────────────────────────────────────────
 # 配置
 # ───────────────────────────────────────────────────────────────
-SRC_DIR = Path("../processed/affectnet-1/images")  # 处理后的图像数据目录
+SRC_DIR = Path("../processed/affectnet-1")  # 处理后的图像数据目录
 DST_DIR = Path("../processed/affectnet/images")  # 拆分后的数据集目标目录
 SPLIT_RATIOS = (0.8, 0.1, 0.1)  # 数据集拆分比例 (训练集, 验证集, 测试集)
 LABEL_MAPPING = {

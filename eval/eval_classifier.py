@@ -20,9 +20,9 @@ from collections import Counter, defaultdict
 # CONFIG
 # ----------------------------------------------------------------------
 CONFIG = {
-    "cls_run": "yolo11n-cls_20250616-1712432",
-    "data_dir": "datasets/processed/fer2013/images/val",
-    "img_size": 112,
+    "cls_run": "coloryolo11s-test",
+    "data_dir": "datasets/cls/processed/fer2013/images/train",
+    "img_size": 224,
     "device": "0",
     "names": ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"],
     "font": cv2.FONT_HERSHEY_SIMPLEX,
