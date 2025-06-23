@@ -11,7 +11,7 @@ SCRIPT_DIR: Path = Path(__file__).resolve().parent
 PROJECT_ROOT: Path = SCRIPT_DIR.parent
 
 CONFIG: dict = {
-    "DATA_DIR": PROJECT_ROOT / "datasets/cls/raw/affectnet",  # 数据集根目录
+    "DATA_DIR": PROJECT_ROOT / "datasets/cls/processed/affectnet-1",  # 数据集根目录
     "KFOLD": 5,  # K折交叉验证折数
     "BATCH_SIZE": 32,  # 推理批大小
     "CONF_THRESH": 0.001,  # 置信度阈值
@@ -51,8 +51,11 @@ CONFIG: dict = {
 
     # 集成投票参数
     "ENSEMBLE_CONFIG": {
-        "voting_threshold": 2,  # 推荐: 1(宽松) 2(平衡) 3(严格)
-        "quality_score_weight": {  # 权重建议根据你的数据调整
+        "voting_threshold": 2,  # 至少2个算法同意才标记为可疑(1-3)
+        "score_threshold": 0.4,  # 综合分数低于0.4也标记为可疑
+
+        # 算法权重
+        "quality_score_weight": {
             "cleanlab": 0.5,  # CleanLab通常最可靠
             "kmeans": 0.3,  # K-Means适合类内异常
             "isolation": 0.2  # Isolation Forest找全局异常
@@ -74,12 +77,12 @@ def main():
 
     try:
         # 1. 加载数据集
-        print("\n📊 步骤 1/7: 加载数据集")
+        print("\n📊 步骤 1/8: 加载数据集")
         img_paths, labels, label_map = load_dataset(CONFIG["DATA_DIR"])
         print(f"   加载完成: {len(img_paths)} 张图片, {len(label_map)} 个类别")
 
         # 2. K折交叉验证训练
-        print("\n🚀 步骤 2/7: K折交叉验证训练")
+        print("\n🚀 步骤 2/8: K折交叉验证训练")
         weight_paths = train_kfold_models(
             img_paths,
             labels,
@@ -92,7 +95,7 @@ def main():
         print(f"   训练完成: {len(weight_paths)} 个模型权重")
 
         # 3. K折交叉验证推理
-        print("\n🔍 步骤 3/7: K折交叉验证推理")
+        print("\n🔍 步骤 3/8: K折交叉验证推理")
         y_true, pred_probs = kfold_predict(
             img_paths,
             labels,
@@ -107,22 +110,22 @@ def main():
         print(f"   推理完成: 预测形状 {pred_probs.shape}")
 
         # 4. CleanLab异常检测
-        print("\n🧹 步骤 4/7: CleanLab异常检测")
+        print("\n🧹 步骤 4/8: CleanLab异常检测")
         cleanlab_suspects, cleanlab_scores = run_enhanced_cleanlab(y_true, pred_probs)
         print(f"   检测完成: {len(cleanlab_suspects)} 个可疑样本")
 
         # 5. K-Means类内异常检测
-        print("\n🎯 步骤 5/7: K-Means类内异常检测")
+        print("\n🎯 步骤 5/8: K-Means类内异常检测")
         kmeans_suspects, kmeans_scores = run_kmeans_detection(y_true, pred_probs, CONFIG["KMEANS_CONFIG"])
         print(f"   检测完成: {len(kmeans_suspects)} 个可疑样本")
 
         # 6. Isolation Forest全局检测
-        print("\n🌲 步骤 6/7: Isolation Forest全局检测")
+        print("\n🌲 步骤 6/8: Isolation Forest全局检测")
         isolation_suspects, isolation_scores = run_isolation_forest(y_true, pred_probs, CONFIG["ISOLATION_CONFIG"])
         print(f"   检测完成: {len(isolation_suspects)} 个可疑样本")
 
         # 7. 集成多算法结果
-        print("\n🤝 步骤 7/7: 集成多算法结果")
+        print("\n🤝 步骤 7/8: 集成多算法结果")
         df_ensemble = ensemble_decision(
             y_true, cleanlab_suspects, cleanlab_scores,
             kmeans_suspects, kmeans_scores,
@@ -132,7 +135,16 @@ def main():
 
         # 8. 导出增强版结果
         print("\n💾 步骤 8/8: 导出增强版结果")
-        export_enhanced_results(df_ensemble, img_paths, label_map, y_true, CONFIG)
+        export_enhanced_results(
+            df_ensemble,
+            img_paths,
+            label_map,
+            y_true,
+            CONFIG["OUTPUT_DIR"],
+            CONFIG["SUSPECTS_DIR"],
+            CONFIG["CLEAN_DIR"],
+            CONFIG["SAVE_IMGS"]
+        )
 
         # 统计信息
         suspects_count = len(df_ensemble[df_ensemble['is_suspect'] == True])

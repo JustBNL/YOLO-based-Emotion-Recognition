@@ -139,7 +139,7 @@ def run_isolation_forest(y_true: np.ndarray, pred_probs: np.ndarray, config: dic
         confidence = pred_probs.max(axis=1).reshape(-1, 1)
         features.append(confidence)
 
-        # 3. 熵（不确定性）
+        # 3. 熵（不确定性越高越不正确）
         entropy = -np.sum(pred_probs * np.log(pred_probs + 1e-8), axis=1).reshape(-1, 1)
         features.append(entropy)
 
@@ -202,7 +202,6 @@ def ensemble_decision(
         isolation_scores: np.ndarray,
         config: dict
 ) -> pd.DataFrame:
-    """集成多个算法的异常检测结果"""
     print("🤝 集成多算法检测结果...")
 
     try:
@@ -234,8 +233,11 @@ def ensemble_decision(
                     isolation_scores[i] * config["quality_score_weight"]["isolation"]
             )
 
-            # 根据投票阈值决定是否为可疑样本
-            is_suspect = vote_count >= config["voting_threshold"]
+            # 简化的判断逻辑：投票 OR 低分数
+            is_suspect = (
+                    vote_count >= config["voting_threshold"] or  # 投票阈值
+                    composite_score <= config["score_threshold"]  # 分数阈值
+            )
 
             results.append({
                 "index": i,
@@ -264,17 +266,18 @@ def ensemble_decision(
         print(f"   Isolation Forest: {len(isolation_suspects)} 个 ({len(isolation_suspects) / n_samples * 100:.1f}%)")
         print(f"   最终集成: {total_suspects} 个 ({total_suspects / n_samples * 100:.1f}%)")
 
-        # 分析重叠情况
-        overlap_all = len(set(cleanlab_suspects) & set(kmeans_suspects) & set(isolation_suspects))
-        overlap_cl_km = len(set(cleanlab_suspects) & set(kmeans_suspects))
-        overlap_cl_iso = len(set(cleanlab_suspects) & set(isolation_suspects))
-        overlap_km_iso = len(set(kmeans_suspects) & set(isolation_suspects))
+        # 分析触发原因
+        vote_triggered = df_results[df_results["vote_count"] >= config["voting_threshold"]].shape[0]
+        score_triggered = df_results[df_results["composite_score"] <= config["score_threshold"]].shape[0]
+        both_triggered = df_results[
+            (df_results["vote_count"] >= config["voting_threshold"]) &
+            (df_results["composite_score"] <= config["score_threshold"])
+            ].shape[0]
 
-        print("📈 算法重叠分析:")
-        print(f"   三算法重叠: {overlap_all} 个")
-        print(f"   CleanLab & K-Means: {overlap_cl_km} 个")
-        print(f"   CleanLab & Isolation: {overlap_cl_iso} 个")
-        print(f"   K-Means & Isolation: {overlap_km_iso} 个")
+        print(f"\n🎯 触发原因分析:")
+        print(f"   投票触发: {vote_triggered} 个")
+        print(f"   分数触发: {score_triggered} 个")
+        print(f"   双重触发: {both_triggered} 个")
 
         # 按综合分数排序，分数越低越可疑
         return df_results.sort_values("composite_score", ascending=True)
