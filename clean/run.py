@@ -118,13 +118,13 @@ CONFIG: dict = {
 
     # 集成投票参数
     "ENSEMBLE_CONFIG": {
-        "voting_threshold": 2,  # 至少2个算法同意才标记为可疑(1-3)
-        "score_threshold": 0.3,  # 综合分数低于0.4也标记为可疑
+        "voting_threshold": 2,  # 至少3个算法同意才标记为可疑(1-3)
+        "score_threshold": 0.3,  # 综合分数低于0.1也标记为可疑
 
         # 算法权重
         "quality_score_weight": {
             "cleanlab": 0.5,  # CleanLab通常最可靠
-            "kmeans": 0.1,  # K-Means适合类内异常
+            "kmeans": 0.1,  # K-Means适合类内异常,不适合计算分数
             "isolation": 0.4  # Isolation Forest找全局异常
         }
     }
