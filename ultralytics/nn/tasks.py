@@ -13,6 +13,7 @@ import torch.nn as nn
 
 from ultralytics.nn.autobackend import check_class_names
 from ultralytics.nn.modules import (
+    GAM_Attention,
     RFAConv,
     CBAM,
     SE,
@@ -1611,6 +1612,7 @@ def parse_model(d, ch, verbose=True):
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     base_modules = frozenset(
         {
+            GAM_Attention,
             RFAConv,
             CBAM,
             SE,

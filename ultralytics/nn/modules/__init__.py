@@ -77,6 +77,7 @@ from .conv import (
     SpatialAttention,
     SE,
     RFAConv,
+    GAM_Attention,
 )
 from .head import (
     OBB,
@@ -105,6 +106,7 @@ from .transformer import (
 )
 
 __all__ = (
+    "GAM_Attention",
     "RFAConv",
     "SE",
     "Conv",
