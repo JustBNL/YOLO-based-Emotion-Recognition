@@ -76,6 +76,7 @@ from .conv import (
     RepConv,
     SpatialAttention,
     SE,
+    RFAConv,
 )
 from .head import (
     OBB,
@@ -104,6 +105,7 @@ from .transformer import (
 )
 
 __all__ = (
+    "RFAConv",
     "SE",
     "Conv",
     "Conv2",

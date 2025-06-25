@@ -1,5 +1,6 @@
 # Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 
+from .Attentions import *
 import contextlib
 import pickle
 import re
@@ -12,6 +13,7 @@ import torch.nn as nn
 
 from ultralytics.nn.autobackend import check_class_names
 from ultralytics.nn.modules import (
+    RFAConv,
     CBAM,
     SE,
     AIFI,
@@ -1609,6 +1611,7 @@ def parse_model(d, ch, verbose=True):
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
     base_modules = frozenset(
         {
+            RFAConv,
             CBAM,
             SE,
             Classify,
@@ -1704,6 +1707,9 @@ def parse_model(d, ch, verbose=True):
             if m is CBAM:
                 c1 = ch[f]
                 args = [c1]
+        elif m in {SHSA}:
+            c2 = ch[f]
+            args = [c2, *args]
         elif m is AIFI:
             args = [ch[f], *args]
         elif m in frozenset({HGStem, HGBlock}):
