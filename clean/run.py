@@ -75,7 +75,7 @@ SCRIPT_DIR: Path = Path(__file__).resolve().parent
 PROJECT_ROOT: Path = SCRIPT_DIR.parent
 
 CONFIG: dict = {
-    "DATA_DIR": PROJECT_ROOT / "datasets/cls/processed/affectnet-1",  # 数据集根目录
+    "DATA_DIR": PROJECT_ROOT / "datasets/cls/processed/affectnet",  # 数据集根目录
     "KFOLD": 5,  # K折交叉验证折数
     "BATCH_SIZE": 32,  # 推理批大小
     "CONF_THRESH": 0.001,  # 置信度阈值
@@ -95,6 +95,9 @@ CONFIG: dict = {
         "epochs": 150,
         "imgsz": 224,
         "batch": 32,
+        "cache": "disk",
+        "amp": True,
+        "workers": 4,
         "patience": 20,
         "device": "0"
     },
@@ -118,8 +121,8 @@ CONFIG: dict = {
 
     # 集成投票参数
     "ENSEMBLE_CONFIG": {
-        "voting_threshold": 2,  # 至少3个算法同意才标记为可疑(1-3)
-        "score_threshold": 0.3,  # 综合分数低于0.1也标记为可疑
+        "voting_threshold": 3,  # 至少3个算法同意才标记为可疑(1-3)
+        "score_threshold": 0.1,  # 综合分数低于0.1也标记为可疑
 
         # 算法权重
         "quality_score_weight": {
