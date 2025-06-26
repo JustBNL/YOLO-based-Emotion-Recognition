@@ -17,11 +17,12 @@ from ultralytics import YOLO
 # 全局配置
 # ----------------------------------------------------------------------
 CONFIG: dict[str, Any] = {
-    "det_run": "face-yolo11n_20250614-1807482",
+    "det_run": "yolo11n_20250617-115322",
     "cls_run": "yolo11s-cls_20250625-201726-new-clean-RFAConv",
 
     # 输入 / 输出
-    "input": 2,                       # 路径 | 目录 | int(摄像头) | URL
+    # "input": r"D:\Document\PycharmProjects\YOLO-based-Emotion-Recognition\inference\data\videos\test.mp4",
+    "input": 2,
     "output_dir": "output/videos",    # 输出视频目录
 
     # 推理参数
@@ -32,14 +33,14 @@ CONFIG: dict[str, Any] = {
 
     # 运行时选项
     "display": True,                  # 是否显示窗口
-    "save_video": True,
+    "save_video": False,
     "overwrite_output": False,
     "font": cv2.FONT_HERSHEY_SIMPLEX,
     "colors": [                       # 绘制框颜色循环
         (255, 0, 0), (0, 255, 0), (0, 128, 255), (255, 0, 255),
         (0, 255, 255), (255, 255, 0), (128, 0, 128),
     ],
-    "names": ["angry", "disgust", "fear", "happy", "sad", "neutral", "surprise"],
+    "names": ["angry", "disgust", "fear", "happy", "sad", "neutral" , "surprise" ],
     "label_display": "label",        # "label" | "code"
 
     # FPS 调优
@@ -301,7 +302,7 @@ def process_stream(cfg: dict, source: Union[int, str], det: YOLO, cls: YOLO) -> 
 
                     cls_res = cls.predict(batch_tensor, device=cfg["device"], verbose=False)
                     # 类别权重（你可以调整这些值）
-                    class_bias = torch.tensor([1.6, 1.7, 1.5, 0.9, 0.2, 2.8, 5.0], device=cfg["device"])
+                    class_bias = torch.tensor([1.6, 1.7, 1.5, 0.9, 0.1, 7.0, 2.0], device=cfg["device"])
 
                     for res in cls_res:
                         prob = res.probs
@@ -402,6 +403,46 @@ def run_infer(*, input_source: Union[int, str] | None = None, target_fps: int | 
             process_stream(CONFIG, src, det_model, cls_model)
     except Exception as e:
         print(f"❌ 运行失败: {e}")
+
+def infer_video_file(video_path: str) -> str:
+    """用于 Web 接口：处理视频文件并返回处理后路径。"""
+    CONFIG["input"] = video_path
+    CONFIG["save_video"] = True
+    CONFIG["display"] = False  # 不弹窗
+    CONFIG["overwrite_output"] = True
+
+    det_model, cls_model = load_models(CONFIG)
+    sources = get_video_sources(CONFIG["input"])
+    if not sources:
+        raise RuntimeError("无效视频源")
+
+    for src in sources:
+        process_stream(CONFIG, src, det_model, cls_model)
+
+    # 返回输出路径
+    name = f"{Path(str(src)).stem}.mp4"
+    out_path = (Path(__file__).parent / CONFIG["output_dir"] / name).resolve()
+    return str(out_path)
+
+def live_camera_stream() -> Any:
+    """Gradio 直播接口：返回实时摄像头图像流（简化版）"""
+    det_model, cls_model = load_models(CONFIG)
+    source = 0
+    CONFIG["input"] = source
+    CONFIG["display"] = False
+    grabber = FrameGrabber(source)
+    grabber.start()
+
+    while True:
+        ok, frame = grabber.read()
+        if not ok:
+            break
+        # 你可以用上面图片推理逻辑处理每一帧（略）
+
+        # 直接返回帧即可
+        yield cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+    grabber.stop()
 
 
 # ----------------------------------------------------------------------

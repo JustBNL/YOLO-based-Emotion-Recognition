@@ -10,12 +10,12 @@ from tqdm import tqdm
 # CONFIG
 # ----------------------------------------------------------------------
 CONFIG = {
-    "det_run": "face-yolo11n_20250614-1807482",
-    "cls_run": "yolo11n-cls_20250616-1712432",
+    "det_run": "yolo11n_20250617-115322",
+    "cls_run": "yolo11s-cls_20250625-201726-new-clean-RFAConv",
     "input_dir": "data/imgs",
     "output_dir": "output/imgs",
     "device": "0",
-    "img_size": 112,
+    "img_size": 224,
     "conf_thres": 0.5,
     "font": cv2.FONT_HERSHEY_SIMPLEX,
     "colors": [(255, 0, 0), (0, 255, 0), (0, 128, 255), (255, 0, 255),
@@ -103,8 +103,14 @@ def run_inference(cfg, det_model, cls_model):
                 face_resized = cv2.resize(face, (cfg["img_size"], cfg["img_size"]))
                 cls_res = cls_model(face_resized, imgsz=cfg["img_size"], device=cfg["device"], verbose=False)[0]
 
-                idx = int(cls_res.probs.top1)
-                prob = float(cls_res.probs.top1conf)
+                class_bias = np.array([1.6, 1.4, 1.5, 0.7, 0.7, 1.6, 1.2], dtype=np.float32)
+
+                logits = cls_res.probs.data.cpu().numpy()  # shape: (7,)
+                adjusted_logits = logits * class_bias
+                probs = adjusted_logits / np.sum(adjusted_logits)  # softmax后可以替代概率
+
+                idx = int(np.argmax(probs))
+                prob = float(probs[idx])  # 这是加权后的“伪概率”
 
                 if cfg.get("label_display") == "code":
                     label = f"{idx}"
@@ -126,6 +132,40 @@ def run_inference(cfg, det_model, cls_model):
             print(f"❌ 处理失败: {img_path.name} | 错误: {e}")
 
     print("🎉 全部图像处理完成")
+
+
+def infer_single_image(image: np.ndarray) -> np.ndarray:
+    from inference.infer_images import CONFIG, load_models, draw_label
+    import cv2
+    import numpy as np
+    import torch
+
+    det_model, cls_model = load_models(CONFIG)
+    img = image.copy()
+
+    det_res = det_model(img, imgsz=640, conf=CONFIG["conf_thres"], device=CONFIG["device"], verbose=False)[0]
+
+    for box in det_res.boxes.xyxy.cpu().numpy():
+        x1, y1, x2, y2 = map(int, box)
+        face = img[y1:y2, x1:x2]
+        if face.size == 0:
+            continue
+
+        face_resized = cv2.resize(face, (CONFIG["img_size"], CONFIG["img_size"]))
+        cls_res = cls_model(face_resized, imgsz=CONFIG["img_size"], device=CONFIG["device"], verbose=False)[0]
+
+        class_bias = np.array([1.6, 1.4, 1.5, 0.7, 0.7, 1.6, 1.2], dtype=np.float32)
+        logits = cls_res.probs.data.cpu().numpy()
+        adjusted_logits = logits * class_bias
+        probs = adjusted_logits / np.sum(adjusted_logits)
+        idx = int(np.argmax(probs))
+        label = f"{CONFIG['names'][idx]} {probs[idx]:.2f}"
+
+        color = CONFIG["colors"][idx % len(CONFIG["colors"])]
+        cv2.rectangle(img, (x1, y1), (x2, y2), color, 2, cv2.LINE_AA)
+        draw_label(img, label, (x1, y1), color)
+
+    return img
 
 
 if __name__ == "__main__":
