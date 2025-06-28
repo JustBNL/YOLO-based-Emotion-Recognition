@@ -11,7 +11,7 @@ from tqdm import tqdm
 # ----------------------------------------------------------------------
 CONFIG = {
     "det_run": "yolo11n_20250617-115322",
-    "cls_run": "yolo11s-cls_20250625-201726-new-clean-RFAConv",
+    "cls_run": "yolo11s-cls_20250625-212446-new-clean-RFAConv_GAM",
     "input_dir": "data/imgs",
     "output_dir": "output/imgs",
     "device": "0",
@@ -20,7 +20,7 @@ CONFIG = {
     "font": cv2.FONT_HERSHEY_SIMPLEX,
     "colors": [(255, 0, 0), (0, 255, 0), (0, 128, 255), (255, 0, 255),
                 (0, 255, 255), (255, 255, 0), (128, 0, 128)],
-    "names": ["angry", "disgust", "fear", "happy", "sad", "surprise", "neutral"],
+    "names": ["angry", "disgust", "fear", "happy", "sad" ,"neutral", "surprise" ],
     "label_display": "label",  # or "code"
     "overwrite_output": False  # 覆盖模式
 }

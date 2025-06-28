@@ -18,7 +18,7 @@ from ultralytics import YOLO
 # ----------------------------------------------------------------------
 CONFIG: dict[str, Any] = {
     "det_run": "yolo11n_20250617-115322",
-    "cls_run": "yolo11s-cls_20250625-201726-new-clean-RFAConv",
+    "cls_run": "yolo11s-cls_20250625-212446-new-clean-RFAConv_GAM",
 
     # 输入 / 输出
     # "input": r"D:\Document\PycharmProjects\YOLO-based-Emotion-Recognition\inference\data\videos\test.mp4",
@@ -40,7 +40,7 @@ CONFIG: dict[str, Any] = {
         (255, 0, 0), (0, 255, 0), (0, 128, 255), (255, 0, 255),
         (0, 255, 255), (255, 255, 0), (128, 0, 128),
     ],
-    "names": ["angry", "disgust", "fear", "happy", "sad", "neutral" , "surprise" ],
+    "names": ["angry", "disgust", "fear", "happy", "neutral", "sad" , "surprise" ],
     "label_display": "label",        # "label" | "code"
 
     # FPS 调优
